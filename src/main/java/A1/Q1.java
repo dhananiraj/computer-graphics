@@ -17,9 +17,6 @@ public class Q1{
             protected void paintComponent(Graphics g) {
                 Graphics2D g2d = (Graphics2D) g;
                 Dimension dimension = getSize();
-                double alpha = Math.toRadians(45);
-                double factor = 1 / (Math.sin(alpha) + Math.cos(alpha));
-                double size = 200;
                 Vector<Point> corners = new Vector<>();
                 int min = Math.min(dimension.height, dimension.width) - 20;
                 g2d.translate((dimension.width - min) / 2,5 + (dimension.height - min) / 2);

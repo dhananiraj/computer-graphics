@@ -1,9 +1,7 @@
 package A1;
 
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
+import java.awt.event.*;
 import javax.swing.*;
 
 class BlockConfig {
@@ -23,9 +21,6 @@ class BlockConfig {
 public class Q2{
 
     final static Boolean[] isPaused = {false};
-//    new TetrisBlock(0,0, (int) (Math.random() * 10), (int) (Math.random() * 10) , g, (int) single_unit);
-//        new TetrisBlock(0,1, (int) (Math.random() * 10), (int) (Math.random() * 10), g, (int) single_unit);
-//        new TetrisBlock(12,1, (int) (Math.random() * 10), (int) (Math.random() * 10), g, (int) single_unit);
     final static BlockConfig[] blocks = new BlockConfig[] {
         new BlockConfig(1,1, (int) (Math.random() * 10), (int) (Math.random() * 10)),
         new BlockConfig(4,19, 0, (int) (Math.random() * 10)),
@@ -53,8 +48,11 @@ public class Q2{
                 draw(g, single_unit);
 
                 if(isPaused[0]) {
+                    Color prev = g.getColor();
+                    g.setColor(Color.BLUE);
                     g.drawString("PAUSE", (int)(single_unit_int * 4.2), single_unit_int * 10);
                     g.drawRect(single_unit_int * 4, (int)(single_unit_int * 9.25), (int) (single_unit_int * 2.7), single_unit_int * 1);
+                    g.setColor(prev);
                 }
 
                 g.drawString("QUIT", (int) (single_unit * 11.5), (int) single_unit * 16);
@@ -96,6 +94,29 @@ public class Q2{
         };
 
         panel.setVisible(true);
+
+        frame.addComponentListener(new ComponentListener() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                Rectangle b = e.getComponent().getBounds();
+                e.getComponent().setBounds(b.x, b.y, (int) (b.height * ratio + 10), b.height);
+            }
+
+            @Override
+            public void componentMoved(ComponentEvent e) {
+
+            }
+
+            @Override
+            public void componentShown(ComponentEvent e) {
+
+            }
+
+            @Override
+            public void componentHidden(ComponentEvent e) {
+
+            }
+        });
 
         frame.add(panel);
 
