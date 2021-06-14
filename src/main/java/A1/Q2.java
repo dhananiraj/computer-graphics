@@ -4,12 +4,36 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.util.Vector;
 import javax.swing.*;
 
+class BlockConfig {
+    int type;
+    int colorType;
+    int x;
+    int y;
+
+    public BlockConfig(int x, int y, int type, int colorType) {
+        this.type = type;
+        this.colorType = colorType;
+        this.x = x;
+        this.y = y;
+    }
+}
+
 public class Q2{
+
+    final static Boolean[] isPaused = {false};
+//    new TetrisBlock(0,0, (int) (Math.random() * 10), (int) (Math.random() * 10) , g, (int) single_unit);
+//        new TetrisBlock(0,1, (int) (Math.random() * 10), (int) (Math.random() * 10), g, (int) single_unit);
+//        new TetrisBlock(12,1, (int) (Math.random() * 10), (int) (Math.random() * 10), g, (int) single_unit);
+    final static BlockConfig[] blocks = new BlockConfig[] {
+        new BlockConfig(1,1, (int) (Math.random() * 10), (int) (Math.random() * 10)),
+        new BlockConfig(4,19, 0, (int) (Math.random() * 10)),
+        new BlockConfig(12,1, (int) (Math.random() * 10), (int) (Math.random() * 10)),
+    };
+
     public static void main(String[] args) {
-        float ratio = (float) (1.7/2);
+        final float ratio = (float) (1.7/2);
         int height = 1000;
         Dimension d = new Dimension((int) (height * ratio),height);
         JFrame frame = new JFrame();
@@ -20,56 +44,60 @@ public class Q2{
 
             protected void paintComponent(Graphics g) {
 
-                final Boolean[] isPaused = {false};
 
                 var single_unit = getHeight() / 20;
+                int single_unit_int = (int) single_unit;
                 this.setSize((int) (getHeight() * ratio + 10), getHeight());
 
 
                 draw(g, single_unit);
 
-//                MouseMotionAdapter a = new MouseMotionAdapter() {
-//                    @Override
-//                    public void mouseMoved(MouseEvent e) {
-//                        super.mouseMoved(e);
-//
-//                        int single_unit_int = (int) single_unit;
-//
-//                        if(e.getX() <= (single_unit_int*10) && e.getY() <= (single_unit_int*20)) {
-//                            pauseLabel.setVisible(true);
-//                        } else {
-//                            pauseLabel.setVisible(false);
-//                        }
-//                    }
-//                };
+                if(isPaused[0]) {
+                    g.drawString("PAUSE", (int)(single_unit_int * 4.2), single_unit_int * 10);
+                    g.drawRect(single_unit_int * 4, (int)(single_unit_int * 9.25), (int) (single_unit_int * 2.7), single_unit_int * 1);
+                }
 
-//                frame.addMouseMotionListener(a);
+                g.drawString("QUIT", (int) (single_unit * 11.5), (int) single_unit * 16);
+                g.drawRect(single_unit_int * 11, (int)(single_unit_int * 15.25), (int) (single_unit_int * 2.7), single_unit_int * 1);
 
-//                    @Override
-//                    public void mouseMoved(MouseEvent e) {
-//                        super.mouseMoved(e);
-////                        System.out.println((single_unit_int*10) + "," + (single_unit_int*20) +"-"+e.getX() +", "+e.getY());
-//                    }
-//                });
+                MouseMotionAdapter a = new MouseMotionAdapter() {
+                    @Override
+                    public void mouseMoved(MouseEvent e) {
+                        super.mouseMoved(e);
+
+                        if(e.getX() <= (single_unit_int * 10 + 5) && e.getY() <= (single_unit_int*20)) {
+                            isPaused[0] = true;
+                        } else {
+                            isPaused[0] = false;
+                        }
+
+                        frame.repaint();
+                    }
+                };
+
+                MouseAdapter q = new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        System.out.println(e);
+                        if(
+                                e.getX() >= (single_unit_int * 11)
+                                && e.getY() >= (single_unit_int * 16.25)
+                                && e.getX() <= (single_unit_int * 13.8)
+                                && e.getY() <= (single_unit_int * 17.25)
+                        ) {
+                            System.exit(0);
+                        }
+                    }
+                };
+
+                frame.addMouseMotionListener(a);
+                frame.addMouseListener(q);
             }
         };
 
         panel.setVisible(true);
 
-//        frame.add(panel);
-
-
-//        JLabel pauseLabel = new JLabel() {
-//            protected void paintComponent(Graphics g_) {
-//                g_.drawString("PAUSED", 100, 100); //these are x and y positions
-//            }
-//        };
-//        pauseLabel.setVisible(true);
-
         frame.add(panel);
-
-        Label pauseLabel = new Label("PAUSE");
-//        frame.add(pauseLabel);
 
     }
 
@@ -86,17 +114,16 @@ public class Q2{
         g.drawString("Level: 1", (int) single_unit * 11, (int) single_unit * 7);
         g.drawString("Lines: 0", (int) single_unit * 11, (int) single_unit * 8);
         g.drawString("Score: 0", (int) single_unit * 11, (int) single_unit * 9);
-        g.drawString("QUIT", (int) single_unit * 11, (int) single_unit * 15);
 
-        new TetrisBlock(0,0, 0, Color.BLUE, g, (int) single_unit);
-        new TetrisBlock(0,1, (int) (Math.random() * 10), Color.YELLOW, g, (int) single_unit);
-        new TetrisBlock(12,1, (int) (Math.random() * 10), Color.RED, g, (int) single_unit);
+        for(BlockConfig config: blocks) {
+            new TetrisBlock(config.x, config.y, config.type, config.colorType, g, (int) single_unit);
+        }
 
     }
 }
 
 class TetrisBlock {
-    int x, y, type;
+    int x, y, type, colorType;
     private int[][][] coords = {
             {{0,0}, {1,0}, {2,0}, {3,0}}, // linear horizontal
             {{0,0}, {0,1}, {0,2}, {0,3}}, // linear vertical
@@ -105,15 +132,24 @@ class TetrisBlock {
             {{1,0}, {1,1}, {0,1}, {0,2}}, // zig-zag right - top to bottom left
             {{0,0}, {1,0}, {2,0}, {1,1}}, // T shaped
     };
-    Color color;
+    private Color[] colors = {
+            Color.BLUE,
+            Color.RED,
+            Color.GREEN,
+            Color.YELLOW,
+            Color.CYAN,
+            Color.orange
+    };
+    private Color color;
     Graphics g;
     int single_unit;
 
-    public TetrisBlock(int x, int y, int type, Color color, Graphics g, int single_unit) {
+    public TetrisBlock(int x, int y, int type, int colorType, Graphics g, int single_unit) {
         this.x = x;
         this.y = y;
         this.type = type % coords.length;
-        this.color = color;
+        this.colorType = colorType % colors.length;
+        this.color = colors[this.colorType];
         this.g = g;
         this.single_unit = single_unit;
         draw();
