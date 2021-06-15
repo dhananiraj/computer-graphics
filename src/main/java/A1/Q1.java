@@ -24,21 +24,36 @@ public class Q1{
                 corners.add(new Point(0,min));
                 corners.add(new Point(min,min));
                 corners.add(new Point(min,0));
-                draw(g, corners);
+                int midX = (corners.get(0).x + corners.get(2).x) / 2, midY = (corners.get(0).y + corners.get(2).y) / 2;
+                g2d.translate(midX, midY);
+                draw(g, corners, corners);
             }
         });
     }
 
-    public static void draw(Graphics g, Vector<Point> points){
-        if(points.stream().allMatch(point -> point.equals(points.firstElement()))) {
+    public static void draw(Graphics g, Vector<Point> points, Vector<Point> corners){
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(
+                RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON
+        );
+        if(corners.stream().allMatch(point -> point.equals(points.firstElement()))) {
             return;
         }
-        Vector<Point> corners = new Vector<>();
-        for (int i = 0; i < points.size(); i++) {
-            g.drawLine(points.get(i).x,points.get(i).y, points.get((i + 1) % 4).x, points.get((i + 1) % 4).y);
-            corners.add(new Point((points.get(i).x + points.get((i + 1) % 4).x) / 2, (points.get(i).y + points.get((i + 1) % 4).y) / 2));
+        Vector<Point> corners_ = new Vector<>();
+        for (int i = 0; i < corners.size(); i++) {
+            corners_.add(new Point((corners.get(i).x + corners.get((i + 1) % 4).x) / 2, (corners.get(i).y + corners.get((i + 1) % 4).y) / 2));
         }
-        draw(g, corners);
+        int length = distance(points.get(0),points.get(1));
+        g2d.drawRect(-length/2,-length/2, length,length);
+        g2d.translate(0, 0);
+        float theta = (float) Math.toRadians(45);
+        g2d.rotate(theta);
+        draw(g, corners_, corners_);
+    }
+
+    public static int distance(Point a, Point b){
+        return (int) Math.sqrt((a.x - b.x)*(a.x - b.x) + (a.y - b.y)*(a.y - b.y));
     }
 }
 
