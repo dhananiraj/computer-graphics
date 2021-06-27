@@ -3,6 +3,7 @@ package A1;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import javax.swing.*;
 
 class BlockConfig {
@@ -10,12 +11,22 @@ class BlockConfig {
     int colorType;
     int x;
     int y;
+    int rotation;
 
     public BlockConfig(int x, int y, int type, int colorType) {
         this.type = type;
         this.colorType = colorType;
         this.x = x;
         this.y = y;
+        rotation = 0;
+    }
+
+    public BlockConfig(int x, int y, int type, int colorType, int rotation) {
+        this.type = type;
+        this.colorType = colorType;
+        this.x = x;
+        this.y = y;
+        this.rotation = rotation;
     }
 }
 
@@ -79,9 +90,11 @@ public class Q2 {
         cy = 2;
     }
 
-    static int currentType, nextType;
+    static int currentType, nextType, currentRotation;
 
     static boolean toLeft, toRight;
+
+    static boolean rotateLeft, rotateRight;
 
     static class SubThread implements Runnable {
 
@@ -147,9 +160,22 @@ public class Q2 {
                         toRight = false;
                     }
 
+                    if(rotateLeft) {
+                        currentRotation = (currentRotation + 1) % 4;
+                        rotateLeft = false;
+                    }
+                    if(rotateRight) {
+                        if(currentRotation == 0) {
+                            currentRotation = 3;
+                        } else {
+                            currentRotation--;
+                        }
+                        rotateRight = false;
+                    }
+
                     cy++;
 
-                    dropThread.sleep(1000);
+                    dropThread.sleep(800);
 
                     frame.repaint();
 
@@ -195,7 +221,7 @@ public class Q2 {
     public static void main(String[] args) {
         occupied = new ArrayList<>();
         final float ratio = (float) (1.7/2);
-        int height = 1000;
+        int height = 600;
         Dimension d = new Dimension((int) (height * ratio),height);
         frame = new JFrame();
         frame.setSize(d);
@@ -204,6 +230,10 @@ public class Q2 {
 
         toLeft = false;
         toRight = false;
+        rotateLeft = false;
+        rotateRight = false;
+
+        currentRotation = 0;
 
         init();
 
@@ -222,7 +252,7 @@ public class Q2 {
                 };
 
                 currentBlock =
-                        new BlockConfig(cx,cy, currentType, currentType);
+                        new BlockConfig(cx,cy, currentType, currentType,currentRotation);
 
                 single_unit = (float) getHeight() / 20;
                 int single_unit_int = (int) single_unit;
@@ -297,6 +327,13 @@ public class Q2 {
 
                 frame.addMouseMotionListener(a);
                 frame.addMouseListener(q);
+                frame.addMouseWheelListener(e -> {
+                    if(e.getWheelRotation() == 1){
+                        rotateLeft = true;
+                    } else if (e.getWheelRotation() == -1) {
+                        rotateRight = true;
+                    }
+                });
             }
         };
 
@@ -344,16 +381,18 @@ public class Q2 {
         g.drawString("Score: 0", (int) single_unit * 11, (int) single_unit * 9);
 
         for(BlockConfig config: blocks) {
-            new TetrisBlock(config.x, config.y, config.type, config.colorType, g, (int) single_unit);
+            new TetrisBlock(config.x, config.y, 0, config.colorType, g, (int) single_unit, 0);
         }
 
-        new TetrisBlock(currentBlock.x, currentBlock.y, currentBlock.type, currentBlock.colorType, g, (int) single_unit);
+        TetrisBlock cb = new TetrisBlock(currentBlock.x, currentBlock.y, currentBlock.type, currentBlock.colorType, g, (int) single_unit, currentBlock.rotation);
+//        cb.rotate(Mapper.getByType(cb.type),1);
+        System.out.println(currentBlock.rotation);
 
     }
 }
 
 class Mapper {
-    static private int[][][] coords = {
+    static private final int[][][] coords = {
             {{0,0}, {1,0}, {2,0}, {3,0}}, // linear horizontal
             {{0,0}, {0,1}, {1,1}, {2,1}}, // L shape - v1
             {{0,2}, {0,1}, {1,1}, {2,1}}, // L shape - v2
@@ -391,13 +430,12 @@ class Mapper {
 
 class TetrisBlock {
     int x, y, type, colorType;
-
-
     private Color color;
     Graphics g;
     int single_unit;
+    int rotation;
 
-    public TetrisBlock(int x, int y, int type, int colorType, Graphics g, int single_unit) {
+    public TetrisBlock(int x, int y, int type, int colorType, Graphics g, int single_unit, int rotation) {
         this.x = x;
         this.y = y;
         this.type = type % Mapper.getAll().length;
@@ -405,11 +443,78 @@ class TetrisBlock {
         this.color = Mapper.getColorByType(this.colorType);
         this.g = g;
         this.single_unit = single_unit;
+        this.rotation = rotation;
         draw();
     }
 
+    public int[][] rotate(int[][] raw,int n) {
+
+        if(n == 0) {
+            return raw;
+        }
+
+        int[][] rotated = new int[raw.length][2];
+
+        int i = 0;
+
+        for(int[] p: raw) {
+            if (Arrays.equals(new int[]{0, 0}, p)) {
+                rotated[i] = new int[]{0, 3};
+            }
+            else if (Arrays.equals(new int[]{1, 0}, p)) {
+                rotated[i] = new int[]{0, 2};
+            }
+            else if (Arrays.equals(new int[]{2, 0}, p)) {
+                rotated[i] = new int[]{0, 1};
+            }
+            else if (Arrays.equals(new int[]{3, 0}, p)) {
+                rotated[i] = new int[]{0, 0};
+            }
+            else if (Arrays.equals(new int[]{0, 1}, p)) {
+                rotated[i] = new int[]{1, 3};
+            }
+            else if (Arrays.equals(new int[]{1, 1}, p)) {
+                rotated[i] = new int[]{1, 2};
+            }
+            else if (Arrays.equals(new int[]{2, 1}, p)) {
+                rotated[i] = new int[]{1, 1};
+            }
+            else if (Arrays.equals(new int[]{3, 1}, p)) {
+                rotated[i] = new int[]{1, 0};
+            }
+            else if (Arrays.equals(new int[]{0, 2}, p)) {
+                rotated[i] = new int[]{2, 3};
+            }
+            else if (Arrays.equals(new int[]{1, 2}, p)) {
+                rotated[i] = new int[]{2, 2};
+            }
+            else if (Arrays.equals(new int[]{2, 2}, p)) {
+                rotated[i] = new int[]{2, 1};
+            }
+            else if (Arrays.equals(new int[]{3, 2}, p)) {
+                rotated[i] = new int[]{2, 0};
+            }
+            else if (Arrays.equals(new int[]{0, 3}, p)) {
+                rotated[i] = new int[]{3, 3};
+            }
+            else if (Arrays.equals(new int[]{1, 3}, p)) {
+                rotated[i] = new int[]{3, 2};
+            }
+            else if (Arrays.equals(new int[]{2, 3}, p)) {
+                rotated[i] = new int[]{3, 1};
+            }
+            else if (Arrays.equals(new int[]{3, 3}, p)) {
+                rotated[i] = new int[]{3, 0};
+            }
+            i++;
+        }
+
+        return rotate(rotated,n-1);
+    }
+
     public void draw(){
-        for(int[] point : Mapper.getByType(type)){
+        int[][] raw_points = Mapper.getByType(type);
+        for(int[] point : rotate(raw_points,rotation)){
             int x_ = point[0], y_ = point[1];
             Color prevColor = g.getColor();
             g.setColor(color);
