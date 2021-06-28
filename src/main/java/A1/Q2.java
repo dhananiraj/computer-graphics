@@ -70,6 +70,7 @@ class SingleBlockConfig {
 public class Q2 {
 
     final static Boolean[] isPaused = {false};
+    final static Boolean[] isOver = {false};
 
     static JFrame frame;
 
@@ -116,7 +117,7 @@ public class Q2 {
                     }
 
                     if(currentBlock == null) {
-                        System.out.println("current block is null");
+                        dropThread.sleep(100);
                         continue;
                     }
 
@@ -259,15 +260,32 @@ public class Q2 {
 
                 g = g_;
 
-                draw(g, single_unit);
+                if(isOver[0]) {
+                    Color prev = g.getColor();
+                    g.setColor(Color.white);
+                    g.fillRect(single_unit_int * 4, (int)(single_unit_int * 9.25), (int) (single_unit_int * 2.7), single_unit_int * 1);
+                    g.setColor(Color.RED);
+                    g.drawString("GAME OVER", (int)(single_unit_int * 4.2), single_unit_int * 10);
+                    g.drawRect(single_unit_int * 4, (int)(single_unit_int * 9.25), (int) (single_unit_int * 2.7), single_unit_int * 1);
+                    g.setColor(prev);
+                } else {
+                    try{
+                        occupied.forEach(block -> {
+                            Color prevColor = g.getColor();
+                            g.setColor(Mapper.getColorByType(block.colorType));
+                            g.fillRect((block.x) * single_unit_int,(block.y) * single_unit_int, single_unit_int, single_unit_int);
+                            g.setColor(prevColor);
+                            g.drawRect((block.x) * single_unit_int,(block.y) * single_unit_int, single_unit_int, single_unit_int);
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        if(occupied.stream().anyMatch(a -> (a.x == 3 && a.y == 4))){
+                            isOver[0] = true;
+                        }
+                    }
+                }
 
-                occupied.forEach(block -> {
-                    Color prevColor = g.getColor();
-                    g.setColor(Mapper.getColorByType(block.colorType));
-                    g.fillRect((block.x) * single_unit_int,(block.y) * single_unit_int, single_unit_int, single_unit_int);
-                    g.setColor(prevColor);
-                    g.drawRect((block.x) * single_unit_int,(block.y) * single_unit_int, single_unit_int, single_unit_int);
-                });
+                draw(g, single_unit);
 
 
                 if(isPaused[0]) {
@@ -277,6 +295,8 @@ public class Q2 {
                     g.drawRect(single_unit_int * 4, (int)(single_unit_int * 9.25), (int) (single_unit_int * 2.7), single_unit_int * 1);
                     g.setColor(prev);
                 }
+
+
 
                 g.drawString("QUIT", (int) (single_unit * 11.5), (int) single_unit * 16);
                 g.drawRect(single_unit_int * 11, (int)(single_unit_int * 15.25), (int) (single_unit_int * 2.7), single_unit_int * 1);
@@ -385,7 +405,7 @@ public class Q2 {
 
         TetrisBlock cb = new TetrisBlock(currentBlock.x, currentBlock.y, currentBlock.type, currentBlock.type, g, (int) single_unit, currentBlock.rotation);
 //        cb.rotate(Mapper.getByType(cb.type),1);
-        System.out.println(currentBlock.rotation);
+//        g.drawRect( (int) (cx * single_unit),(int) (cy * single_unit),5,5); // debug point
 
     }
 }
@@ -427,7 +447,38 @@ class Mapper {
         return colors[type % colors.length];
     }
 
-    static int[][] rotate(int[][] raw,int n) {
+    static int[][] rotate(int[][] raw, int n){
+        int[][] rotated = rotate_without_translation(raw, n);
+
+        if(n == 0) {
+            return rotated;
+        }
+
+        int[] min = new int[]{3,3};
+
+        for (int i = 0; i < rotated.length; i++) {
+
+
+            if(rotated[i][0] < min[0]) {
+                min[0] = rotated[i][0];
+            }
+
+            if(rotated[i][1] < min[1]) {
+                min[1] = rotated[i][1];
+            }
+        }
+
+        if(min[0]>0 || min[1]>0){
+            for (int j = 0; j < rotated.length; j++) {
+                rotated[j][0] -= min[0] ;
+                rotated[j][1] -= min[1] ;
+            }
+        }
+
+        return rotated;
+    }
+
+    static int[][] rotate_without_translation(int[][] raw,int n) {
 
         if(n == 0) {
             return raw;
