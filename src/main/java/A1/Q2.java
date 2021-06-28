@@ -173,7 +173,7 @@ public class Q2 {
 
                     cy++;
 
-                    dropThread.sleep(300);
+                    dropThread.sleep(500);
 
                     frame.repaint();
 
