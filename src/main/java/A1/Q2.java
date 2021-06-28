@@ -111,7 +111,7 @@ public class Q2 {
                 try{
 
                     if(isPaused[0]) {
-                        dropThread.sleep(200);
+                        dropThread.sleep(100);
                         continue;
                     }
 
@@ -121,7 +121,7 @@ public class Q2 {
                     }
 
                     if(isBlockCollidingNow()) {
-                        int[][] coords = Mapper.getByType(currentBlock.type);
+                        int[][] coords = Mapper.rotate(Mapper.getByType(currentBlock.type),currentRotation);
                         for (
                                 int[] c: coords
                             ) {
@@ -133,23 +133,21 @@ public class Q2 {
 
 
                     if(toLeft) {
-                        int[][] coords = Mapper.getByType(currentBlock.type);
+                        int[][] coords = Mapper.rotate(Mapper.getByType(currentBlock.type),currentRotation);
                         boolean flg = false;
-                        for (int[] c:
-                                coords) {
-                            if((occupied != null && occupied.stream().anyMatch(block -> (block.x <= c[0] + cx - 1 && block.y ==  c[1] + cy + 1)))){
+                        for (int[] c: coords) {
+                            if(c[0] + cx <= 0 || (occupied != null && occupied.stream().anyMatch(block -> (block.x <= c[0] + cx - 1 && block.y ==  c[1] + cy + 1)))){
                                 flg = true;
                             }
                         }
 
-                        if(cx > 0 && !flg)
+                        if(cx > -1 && !flg)
                             cx--;
                         toLeft = false;
                     } else if(toRight) {
-                        int[][] coords = Mapper.getByType(currentBlock.type);
+                        int[][] coords = Mapper.rotate(Mapper.getByType(currentBlock.type),currentRotation);
                         boolean flg = false;
-                        for (int[] c:
-                                coords) {
+                        for (int[] c: coords) {
                             if(c[0] + cx >= 9 || (occupied != null && occupied.stream().anyMatch(block -> (block.x >= c[0] + cx + 1 && block.y ==  c[1] + cy + 1)))){
                                 flg = true;
                             }
@@ -175,7 +173,7 @@ public class Q2 {
 
                     cy++;
 
-                    dropThread.sleep(800);
+                    dropThread.sleep(300);
 
                     frame.repaint();
 
@@ -190,7 +188,7 @@ public class Q2 {
         }
 
         boolean isBlockCollidingNow(){
-            int[][] coords = Mapper.getByType(currentBlock.type);
+            int[][] coords = Mapper.rotate(Mapper.getByType(currentBlock.type),currentRotation);
             int cy_next = cy+1;
             for (int[] c:
                  coords) {
@@ -213,6 +211,7 @@ public class Q2 {
         cy = 2;
         currentType = nextType;
         nextType = (int) (Math.random() * 10);
+        currentRotation=0;
         frame.repaint();
     }
 
@@ -293,7 +292,7 @@ public class Q2 {
                             isPaused[0] = false;
                         }
 
-                        frame.repaint();
+//                        frame.repaint();
                     }
                 };
 
@@ -328,9 +327,9 @@ public class Q2 {
                 frame.addMouseMotionListener(a);
                 frame.addMouseListener(q);
                 frame.addMouseWheelListener(e -> {
-                    if(e.getWheelRotation() == 1){
+                    if(e.getWheelRotation() == -1){
                         rotateLeft = true;
-                    } else if (e.getWheelRotation() == -1) {
+                    } else if (e.getWheelRotation() == 1) {
                         rotateRight = true;
                     }
                 });
@@ -381,10 +380,10 @@ public class Q2 {
         g.drawString("Score: 0", (int) single_unit * 11, (int) single_unit * 9);
 
         for(BlockConfig config: blocks) {
-            new TetrisBlock(config.x, config.y, 0, config.colorType, g, (int) single_unit, 0);
+            new TetrisBlock(config.x, config.y, config.type, config.type, g, (int) single_unit, 0);
         }
 
-        TetrisBlock cb = new TetrisBlock(currentBlock.x, currentBlock.y, currentBlock.type, currentBlock.colorType, g, (int) single_unit, currentBlock.rotation);
+        TetrisBlock cb = new TetrisBlock(currentBlock.x, currentBlock.y, currentBlock.type, currentBlock.type, g, (int) single_unit, currentBlock.rotation);
 //        cb.rotate(Mapper.getByType(cb.type),1);
         System.out.println(currentBlock.rotation);
 
@@ -395,7 +394,7 @@ class Mapper {
     static private final int[][][] coords = {
             {{0,0}, {1,0}, {2,0}, {3,0}}, // linear horizontal
             {{0,0}, {0,1}, {1,1}, {2,1}}, // L shape - v1
-            {{0,2}, {0,1}, {1,1}, {2,1}}, // L shape - v2
+            {{0,1}, {1,1}, {2,1}, {2,0}}, // L shape - v2
             {{0,0}, {0,1}, {1,0}, {1,1}}, // square
             {{1,0}, {2,0}, {0,1}, {1,1}}, // zig-zag left - top to bottom right
             {{0,0}, {1,0}, {1,1}, {2,1}}, // zig-zag right - top to bottom left
@@ -403,12 +402,13 @@ class Mapper {
     };
 
     static Color[] colors = {
-            Color.BLUE,
-            Color.RED,
             Color.GREEN,
+            new Color(102,0,153),
+            Color.RED,
+            new Color(3, 177, 252),
             Color.YELLOW,
-            Color.CYAN,
-            Color.orange
+            new Color(2, 102, 224),
+            new Color(255, 170, 0)
     };
 
     static int[][][] getAll() {
@@ -426,28 +426,8 @@ class Mapper {
     static Color getColorByType(int type) {
         return colors[type % colors.length];
     }
-}
 
-class TetrisBlock {
-    int x, y, type, colorType;
-    private Color color;
-    Graphics g;
-    int single_unit;
-    int rotation;
-
-    public TetrisBlock(int x, int y, int type, int colorType, Graphics g, int single_unit, int rotation) {
-        this.x = x;
-        this.y = y;
-        this.type = type % Mapper.getAll().length;
-        this.colorType = colorType % Mapper.getAllColors().length;
-        this.color = Mapper.getColorByType(this.colorType);
-        this.g = g;
-        this.single_unit = single_unit;
-        this.rotation = rotation;
-        draw();
-    }
-
-    public int[][] rotate(int[][] raw,int n) {
+    static int[][] rotate(int[][] raw,int n) {
 
         if(n == 0) {
             return raw;
@@ -511,10 +491,30 @@ class TetrisBlock {
 
         return rotate(rotated,n-1);
     }
+}
+
+class TetrisBlock {
+    int x, y, type, colorType;
+    private Color color;
+    Graphics g;
+    int single_unit;
+    int rotation;
+
+    public TetrisBlock(int x, int y, int type, int colorType, Graphics g, int single_unit, int rotation) {
+        this.x = x;
+        this.y = y;
+        this.type = type % Mapper.getAll().length;
+        this.colorType = colorType % Mapper.getAllColors().length;
+        this.color = Mapper.getColorByType(this.colorType);
+        this.g = g;
+        this.single_unit = single_unit;
+        this.rotation = rotation;
+        draw();
+    }
 
     public void draw(){
         int[][] raw_points = Mapper.getByType(type);
-        for(int[] point : rotate(raw_points,rotation)){
+        for(int[] point : Mapper.rotate(raw_points,rotation)){
             int x_ = point[0], y_ = point[1];
             Color prevColor = g.getColor();
             g.setColor(color);
