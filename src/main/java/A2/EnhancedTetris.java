@@ -1,4 +1,4 @@
-package A1;
+package A2;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -67,7 +67,7 @@ class SingleBlockConfig {
 }
 
 
-public class Q2 {
+public class EnhancedTetris {
 
     final static Boolean[] isPaused = {false};
     final static Boolean[] isOver = {false};
@@ -125,7 +125,7 @@ public class Q2 {
                         int[][] coords = Mapper.rotate(Mapper.getByType(currentBlock.type),currentRotation);
                         for (
                                 int[] c: coords
-                            ) {
+                        ) {
                             occupied.add(new SingleBlockConfig(currentBlock.colorType, cx+c[0], cy+c[1]));
                         }
                         reInit();
@@ -200,7 +200,7 @@ public class Q2 {
             }
             int cy_next = cy+1;
             for (int[] c:
-                 coords) {
+                    coords) {
                 if((occupied != null && occupied.stream().anyMatch(block -> (block.x == c[0]+cx && block.y ==  c[1]+cy_next))) || c[1] + cy_next > 19){
                     return true;
                 }
@@ -219,7 +219,7 @@ public class Q2 {
         if(isOver[0]) {
             return;
         }
-        if(occupied.stream().anyMatch(a -> (a.x == 3 && a.y == 5))){
+        if(occupied.stream().anyMatch(a -> (a.y == 5))){
             isOver[0] = true;
             return;
         }
@@ -255,7 +255,7 @@ public class Q2 {
         currentType = (int) (Math.random() * 10);
         nextType= (int) (Math.random() * 10);
 
-        SubThread dropThread = new SubThread();
+        EnhancedTetris.SubThread dropThread = new EnhancedTetris.SubThread();
         dropThread.start();
 
         JPanel panel = new JPanel() {
@@ -337,9 +337,9 @@ public class Q2 {
                         // for exit button
                         if(
                                 e.getX() >= (single_unit_int * 11)
-                                && e.getY() >= (single_unit_int * 15.8)
-                                && e.getX() <= (single_unit_int * 13.8)
-                                && e.getY() <= (single_unit_int * 17.25)
+                                        && e.getY() >= (single_unit_int * 15.8)
+                                        && e.getX() <= (single_unit_int * 13.8)
+                                        && e.getY() <= (single_unit_int * 17.25)
                         ) {
                             System.exit(0);
                         }
@@ -362,9 +362,9 @@ public class Q2 {
                 frame.addMouseMotionListener(a);
                 frame.addMouseListener(q);
                 frame.addMouseWheelListener(e -> {
-                    if(e.getWheelRotation() == -1){
+                    if(e.getWheelRotation() == 1){
                         rotateLeft = true;
-                    } else if (e.getWheelRotation() == 1) {
+                    } else if (e.getWheelRotation() == -1) {
                         rotateRight = true;
                     }
                 });
