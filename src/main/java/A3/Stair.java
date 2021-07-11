@@ -1,5 +1,7 @@
 package A3;
 
+import java.io.File;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -7,7 +9,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 class Counter {
-    public static int count = 1;
     public static int count_ = 1;
 }
 
@@ -21,16 +22,40 @@ public class Stair {
         return R * Math.sin(-1 * i * del);
     }
 
-    public static void main(String[] args) {
+    static class FilePrinter {
+        static PrintWriter pw;
+        static File file;
 
+        public static void init(String fname) throws Exception{
+            file = new File(fname);
+            pw = new PrintWriter(file);
+        }
 
-        // NUMBER_OF_VERTEX_ON_OUTER_CIRCLE_OF_CYLINDER
-        int n = 3;
+    }
+
+    public static void main(String[] args) throws Exception{
+
+        if (args.length != 3) {
+            System.out.println("Need to provide n (> 0), alpha (in degrees)\n" + "and a filename as program arguments.\n");
+            System.exit(1);
+        }
+
+        // NUMBER_OF_STAIR_CASES
+        int n = Integer.parseInt(args[0]);
+
+        double degree = Double.parseDouble(args[1]);
+
+        if(n <= 0) {
+            System.out.println("Need to provide n (> 0), alpha (in degrees)\n" + "and a filename as program arguments.\n");
+            System.exit(1);
+        }
+
+        FilePrinter.init(args[2]);
 
         int steps = n + 4;
 
         // Angle between each points w.r.t origin
-        double del = 2 * Math.PI / n;
+        double del = Math.PI * degree/ 180;
 
         ArrayList<Point> cylinderTopPoints = new ArrayList<>();
         ArrayList<Point> cylinderBottomPoints = new ArrayList<>();
@@ -62,7 +87,7 @@ public class Stair {
             innerSpiralPoints.add(Point.as( x, y, (steps - k) * 2));
 
             stairCase aCase = new stairCase();
-            aCase.calcAndAddPoints(Point.as(cX(2,0, del),cY(2,0, del),((steps - k) * 2) - 8), i, del, Counter.count++);
+            aCase.calcAndAddPoints(Point.as(cX(2,0, del),cY(2,0, del),((steps - k) * 2) - 8), i, del, Counter.count_++);
             stairs.add(aCase);
 
 
