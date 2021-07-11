@@ -189,7 +189,7 @@ public class Stair {
 
         // print faces:
 
-        System.out.println("Faces:");
+        FilePrinter.pw.println("Faces:");
         cylinderFaces.forEach(f -> printFaces(f));
         printLines(outerSpiralLine);
         stairLines.forEach(l -> {
@@ -200,40 +200,41 @@ public class Stair {
 //        printFaces(Arrays.asList(aCase.vertices.get(0).i,aCase.vertices.get(2).i,aCase.vertices.get(3).i,aCase.vertices.get(1).i));
 
 
-
+        FilePrinter.pw.flush();
+        FilePrinter.pw.close();
     }
 
     public static void printPoints(List<Point> points){
         points.forEach(p -> {
-            System.out.println(String.format("%d %.2f %.2f %.2f", p.i, p.x, p.y, p.z));
+            FilePrinter.pw.println(String.format("%d %.2f %.2f %.2f", p.i, p.x, p.y, p.z));
         });
     }
 
     public static void printLines(List<Integer> points) {
         for (int i = 0; i < points.size() - 1; i++) {
-            System.out.println(String.format("%d %d.", points.get(i), points.get(i + 1)));
+            FilePrinter.pw.println(String.format("%d %d.", points.get(i), points.get(i + 1)));
         }
     }
 
     public static void printFaces(List<Integer> points) {
         int i = 0;
         for(var p : points) {
-            System.out.print(String.format("%d", p));
+            FilePrinter.pw.print(String.format("%d", p));
             if(i < points.size() - 1)
-                System.out.print(" ");
+                FilePrinter.pw.print(" ");
             i++;
         };
-        System.out.println(".");
+        FilePrinter.pw.println(".");
 
         i = 0;
         Collections.reverse(points);
         for(var p : points) {
-            System.out.print(String.format("%d", p));
+            FilePrinter.pw.print(String.format("%d", p));
             if(i < points.size() - 1)
-                System.out.print(" ");
+                FilePrinter.pw.print(" ");
             i++;
         };
-        System.out.println(".");
+        FilePrinter.pw.println(".");
     }
 }
 
