@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 import javax.swing.*;
 
 class BlockConfig {
@@ -72,6 +73,8 @@ public class EnhancedTetris {
     final static Boolean[] isPaused = {false};
     final static Boolean[] isOver = {false};
 
+    static int MAIN_X = 20, MAIN_Y = 20;
+
     static JFrame frame;
 
     static BlockConfig[] blocks;
@@ -86,6 +89,32 @@ public class EnhancedTetris {
 
     static ArrayList<SingleBlockConfig> occupied;
 
+    static final int SPEED_MIN = 0;
+    static final int SPEED_MAX = 30;
+    static final int SPEED_INIT= 15;
+
+    static int M = 10; // 01 to 15
+    static int N = 20; // 20 to 40
+
+    static int level_counter = 0;
+
+    static int level = 1;
+    static int score = 0;
+
+    static int SPEED;
+
+    static JSlider speed = new JSlider(JSlider.HORIZONTAL,
+            SPEED_MIN, SPEED_MAX, SPEED_INIT);
+
+    static JSlider difficulty = new JSlider(JSlider.HORIZONTAL,
+            20, 40, 20);
+
+    static JSlider scoreFactor = new JSlider(JSlider.HORIZONTAL,
+            1, 15, 10);
+
+    static JSlider zoom = new JSlider(JSlider.HORIZONTAL,
+            1, 2, 1);
+
     static void init() {
         cx = 3;
         cy = 2;
@@ -93,9 +122,23 @@ public class EnhancedTetris {
 
     static int currentType, nextType, currentRotation;
 
+    static boolean[] isPenalty = {false};
+
     static boolean toLeft, toRight;
 
     static boolean rotateLeft, rotateRight;
+
+    static int row_blasted = 0;
+
+    static float mapper(float A, float B, float C, float D, float p) {
+        float scale = (D-C)/(B-A);
+        float offset = -A*(D-C)/(B-A) + C;
+        return p * scale + offset;
+    }
+
+    static boolean lock_penalty = false;
+
+    static boolean[] resize = {false};
 
     static class SubThread implements Runnable {
 
@@ -111,9 +154,32 @@ public class EnhancedTetris {
             while(true){
                 try{
 
+                    if(resize[0]) {
+                        MAIN_Y = new_dim[0];
+                        MAIN_X = new_dim[1];
+                        ratio = (MAIN_X + 10) / MAIN_Y;
+                        dropThread.sleep(500);
+                        resize[0] = false;
+                    }
+
+                    if(zoom_now[0]) {
+                        zoom_now[0] = false;
+                        frame.setSize((int)(w * (1 + (zoom_ - 1) / 10)), (int)(h * (1 + (zoom_ - 1) / 10)) + (int)single_unit);
+                    }
+
                     if(isPaused[0] || isOver[0]) {
+                        if(isPenalty[0] && !lock_penalty) {
+                            currentType = ((int) (Math.random() * 100)) % Mapper.getAll().length;
+                            // Score = Score - Level x M
+                            score -= level * M;
+                            isPenalty[0] = false;
+                            lock_penalty = true;
+                        }
                         dropThread.sleep(100);
+                        frame.repaint(100);
                         continue;
+                    } else {
+                        lock_penalty = false;
                     }
 
                     if(currentBlock == null) {
@@ -149,7 +215,7 @@ public class EnhancedTetris {
                         int[][] coords = Mapper.rotate(Mapper.getByType(currentBlock.type),currentRotation);
                         boolean flg = false;
                         for (int[] c: coords) {
-                            if(c[0] + cx >= 9 || (occupied != null && occupied.stream().anyMatch(block -> (block.x >= c[0] + cx + 1 && block.y ==  c[1] + cy + 1)))){
+                            if(c[0] + cx >= MAIN_X - 1 || (occupied != null && occupied.stream().anyMatch(block -> (block.x >= c[0] + cx + 1 && block.y ==  c[1] + cy + 1)))){
                                 flg = true;
                             }
                         }
@@ -180,9 +246,9 @@ public class EnhancedTetris {
 
                     cy++;
 
-                    dropThread.sleep(500);
+                    dropThread.sleep((long) mapper(0,30,2000, 300, (float)(SPEED + 0.5 * level)));
 
-                    frame.repaint();
+                    frame.repaint(100);
 
                     if(g != null)
                         draw(g,single_unit);
@@ -201,7 +267,7 @@ public class EnhancedTetris {
             int cy_next = cy+1;
             for (int[] c:
                     coords) {
-                if((occupied != null && occupied.stream().anyMatch(block -> (block.x == c[0]+cx && block.y ==  c[1]+cy_next))) || c[1] + cy_next > 19){
+                if((occupied != null && occupied.stream().anyMatch(block -> (block.x == c[0]+cx && block.y ==  c[1]+cy_next))) || c[1] + cy_next > MAIN_Y - 1){
                     return true;
                 }
             }
@@ -223,23 +289,83 @@ public class EnhancedTetris {
             isOver[0] = true;
             return;
         }
+
+        removeRows();
+
         cx = 3;
         cy = 2;
         currentType = nextType;
         nextType = (int) (Math.random() * 10);
         currentRotation=0;
-        frame.repaint();
+        frame.repaint(1000);
+    }
+
+    public static void removeRows(){
+        int max_y = occupied.stream().max((o1, o2) -> {return o1.y - o2.y;}).get().y;
+//        System.out.println("max_y:"+max_y);
+        int min_y = occupied.stream().min((o1, o2) -> {return o1.y - o2.y;}).get().y;
+//        System.out.println("max_y:"+min_y);
+
+        for (int i = min_y; i <= max_y; i++) {
+            final int n = i;
+            long count = (int) occupied.stream().filter(e -> {return e.y == n;}).count();
+
+            if(count == MAIN_X) {
+                row_blasted++;
+                occupied = (ArrayList<SingleBlockConfig>) occupied.stream()
+                                                    .filter(e -> {return e.y != n;})
+                                                    .map(e -> {
+                                                        if(e.y < n) {
+                                                            return new SingleBlockConfig(e.colorType, e.x, e.y + 1);
+                                                        } else {
+                                                            return e;
+                                                        }
+                                                    })
+                                                    .collect(Collectors.toList());
+                score += level * M;
+            }
+
+        }
     }
 
 
+    static class SliderPanel extends JPanel {
+        protected void paintComponent(Graphics g_) {
+            Color bc = UIManager.getColor ( "Panel.background" );
+            Color c = g_.getColor();
+            g_.setColor(bc);
+            g_.fillRect(0,0,1000,1000);
+            g_.setColor(c);
+            g_.drawString("Speed", (int) (single_unit * 0.3), (int) (single_unit * 1.2));
+            g_.drawString("Difficulty", (int) (single_unit * 0.3), (int) (single_unit * 2.7));
+            g_.drawString("S factor", (int) (single_unit * 0.3), (int) (single_unit * 4));
+            g_.drawString("Zoom", (int) (single_unit * 0.3), (int) (single_unit * 5.5));
+        }
+    }
+
+    static float zoom_ = 1;
+
+    static int h = 700, w;
+
+    static float ratio;
+
+    static boolean[] zoom_now = {false};
+
+    static JTextField h_ = new JTextField(2);
+
+    static JTextField w_ = new JTextField(2);
+
+    static int[] new_dim;
 
     public static void main(String[] args) {
+
         occupied = new ArrayList<>();
-        final float ratio = (float) (1.7/2);
-        int height = 600;
-        Dimension d = new Dimension((int) (height * ratio),height);
+        int height = (int)(700 * zoom_);
+        ratio = (float) ((MAIN_X + 12.0) / MAIN_Y);
+        w = (int)(h * ratio);
+        Dimension d = new Dimension((int) (height * ratio),height + 100);
         frame = new JFrame();
-        frame.setSize(d);
+        frame.setSize((int)(w * (1 + (zoom_ - 1) / 10)), (int)(h * (1 + (zoom_ - 1) / 10)) + (int)(h / MAIN_Y));
         frame.setVisible(true);
         frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
@@ -258,31 +384,79 @@ public class EnhancedTetris {
         EnhancedTetris.SubThread dropThread = new EnhancedTetris.SubThread();
         dropThread.start();
 
+        single_unit = (float) frame.getHeight() / MAIN_Y;
+
+        JPanel Sliders = new SliderPanel();
+
         JPanel panel = new JPanel() {
 
             protected void paintComponent(Graphics g_) {
+                h_.setBounds((int)(single_unit * (MAIN_X + 2)), (int) (single_unit * 18.5), (int)single_unit, (int)single_unit);
+                w_.setBounds((int)(single_unit * (MAIN_X + 4)), (int) (single_unit * 18.5), (int)single_unit, (int)single_unit);
+
+                speed.setBounds((int)(single_unit * 2.5),(int)(single_unit * 0.2),(int)(single_unit * 6.5),(int)(single_unit * 1));
+                speed.setSize((int)(single_unit * 3.5),(int)(single_unit * 2));
+                speed.setMajorTickSpacing(5);
+                speed.setMinorTickSpacing(1);
+
+                speed.addChangeListener(e -> {
+                    var x = speed.getValue();
+                    SPEED = x;
+                });
+
+                difficulty.setBounds((int)(single_unit * 2.5),(int)(single_unit * 1.5),(int)(single_unit * 6.5),(int)(single_unit * 1));
+                difficulty.setSize((int)(single_unit * 3.5),(int)(single_unit * 2));
+
+                difficulty.addChangeListener(e -> {
+                    var x = difficulty.getValue();
+                    N = x;
+                });
+
+                scoreFactor.setBounds((int)(single_unit * 2.5),(int)(single_unit * 3),(int)(single_unit * 6.5),(int)(single_unit * 1));
+                scoreFactor.setSize((int)(single_unit * 3.5),(int)(single_unit * 1.8));
+
+                scoreFactor.addChangeListener(e -> {
+                    var x = scoreFactor.getValue();
+                    M = x;
+                });
+
+
+                zoom.setBounds((int)(single_unit * 2.5),(int)(single_unit * 4.5),(int)(single_unit * 6.5),(int)(single_unit * 1));
+                zoom.setSize((int)(single_unit * 3.5),(int)(single_unit * 1.8));
+                zoom.addChangeListener(e -> {
+                    var x = zoom.getValue();
+                    zoom_ = x;
+                    zoom_now[0] = true;
+                });
+
+                Sliders.repaint(100);
+                Sliders.setBounds((int)single_unit * (MAIN_X + 1),(int)single_unit * 10,(int)(single_unit * 6.5),(int)(single_unit * 7));
+                Sliders.setBorder(BorderFactory.createMatteBorder(1,1,1,1,Color.black));
 
                 blocks = new BlockConfig[] {
-                        new BlockConfig(12,1, nextType, (int) nextType),
+                        new BlockConfig(MAIN_X + 2,1, nextType, (int) nextType),
                 };
 
                 currentBlock =
                         new BlockConfig(cx,cy, currentType, currentType,currentRotation);
 
-                single_unit = (float) getHeight() / 20;
+                single_unit = (float) getHeight() / MAIN_Y;
                 int single_unit_int = (int) single_unit;
-                this.setSize((int) (getHeight() * ratio + 10), getHeight());
+                this.setSize((int)(w * (1 + (zoom_ - 1) / 10)), (int)(h * (1 + (zoom_ - 1) / 10)));
 
                 g = g_;
+
+                g.drawString("h:", (int)(single_unit*(MAIN_X + 1.4)), (int) (19 * (single_unit)));
+                g.drawString("w:", (int)(single_unit*(MAIN_X + 3.4)), (int) (19 * (single_unit)));
 
                 if(isOver[0]) {
                     Color prev = g.getColor();
                     g.setColor(Color.white);
-                    g.fillRect(single_unit_int * 2, (int)(single_unit_int * 9.25), (int) (single_unit_int * 5.5), single_unit_int * 1);
+                    g.fillRect(single_unit_int * (MAIN_X/2 - 3), (int)(single_unit_int * (MAIN_Y/2 - 0.75)), (int) (single_unit_int * 5.5), single_unit_int * 1);
                     g.setColor(Color.RED);
                     g.setFont(new Font("arial",100, (int) (single_unit * 0.7)));
-                    g.drawString("GAME OVER", (int)(single_unit_int * 2.5), single_unit_int * 10);
-                    g.drawRect(single_unit_int * 2, (int)(single_unit_int * 9.25), (int) (single_unit_int * 5.5), single_unit_int * 1);
+                    g.drawString("GAME OVER", (int)(single_unit_int * (MAIN_X/2 - 2.5)), single_unit_int * (MAIN_Y/2));
+                    g.drawRect(single_unit_int * (MAIN_X/2 - 3), (int)(single_unit_int * (MAIN_Y/2 - 0.75)), (int) (single_unit_int * 5.5), single_unit_int * 1);
                     g.setColor(prev);
                 } else {
                     try{
@@ -304,42 +478,77 @@ public class EnhancedTetris {
                 if(isPaused[0] && !isOver[0]) {
                     Color prev = g.getColor();
                     g.setColor(Color.white);
-                    g.fillRect(single_unit_int * 4, (int)(single_unit_int * 9.25), (int) (single_unit_int * 2.7), single_unit_int * 1);
+                    g.fillRect(single_unit_int * (MAIN_X/2 - 1), (int)(single_unit_int * (MAIN_Y/2 - 0.75)), (int) (single_unit_int * 2.7), single_unit_int * 1);
                     g.setColor(Color.BLUE);
-                    g.drawString("PAUSE", (int)(single_unit_int * 4.2), single_unit_int * 10);
-                    g.drawRect(single_unit_int * 4, (int)(single_unit_int * 9.25), (int) (single_unit_int * 2.7), single_unit_int * 1);
+                    g.drawString("PAUSE", (int)(single_unit_int * (MAIN_X/2 - 0.7)), single_unit_int * (MAIN_Y/2));
+                    g.drawRect(single_unit_int * (MAIN_X/2 - 1), (int)(single_unit_int * (MAIN_Y/2 - 0.75)), (int) (single_unit_int * 2.7), single_unit_int * 1);
                     g.setColor(prev);
                 }
 
 
 
-                g.drawString("QUIT", (int) (single_unit * 11.5), (int) single_unit * 16);
-                g.drawRect(single_unit_int * 11, (int)(single_unit_int * 15.25), (int) (single_unit_int * 2.7), single_unit_int * 1);
+                g.drawString("QUIT", (int) (single_unit * (MAIN_X + 1.5)), (int) single_unit * 18);
+                g.drawRect(single_unit_int * (MAIN_X + 1), (int)(single_unit_int * 17.25), (int) (single_unit_int * 2.7), single_unit_int * 1);
+
+                g.drawString("OK", (int) (single_unit * (MAIN_X + 6)), (int) (single_unit * 19.2));
+                g.drawRect((int)(single_unit * (MAIN_X + 5.8)), (int)(single_unit * 18.5), (int) (single_unit_int * 1.3), single_unit_int * 1);
 
                 MouseMotionAdapter a = new MouseMotionAdapter() {
                     @Override
                     public void mouseMoved(MouseEvent e) {
                         super.mouseMoved(e);
+                        // g.drawRect((int)(single_unit * (MAIN_X + 5.8)), (int)(single_unit * 18.5), (int) (single_unit_int * 1.3), single_unit_int * 1);
 
-                        if(e.getX() <= (single_unit_int * 10 + 5) && e.getY() <= (single_unit_int*20)) {
+                        if(e.getX() <= (single_unit_int * MAIN_X + 5) && e.getY() <= (single_unit_int * MAIN_Y)) {
                             isPaused[0] = true;
                         } else {
                             isPaused[0] = false;
                         }
 
-//                        frame.repaint();
+                        if(isPaused[0]) {
+                            var x = e.getX();
+                            var y = e.getY();
+
+                            var coords = Mapper.rotate(Mapper.getByType(currentBlock.type),currentRotation);
+                            Arrays.stream(coords).map(p -> {
+                                return new float[]{
+                                        single_unit_int * (currentBlock.x + p[0]),
+                                        single_unit_int * (currentBlock.y + p[1]),
+                                };
+                            }).forEach(p -> {
+                                if(x >= p[0] && x <= p[0] + single_unit_int && y >= p[1] && y <= p[1] + single_unit_int) {
+                                    System.out.println("penalize:"+e.getX()+" "+e.getY());
+                                    isPenalty[0] = true;
+                                }
+                            });
+
+
+                        }
+
+                        frame.repaint(1000);
                     }
                 };
 
                 MouseAdapter q = new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
+
+                        if(
+                                e.getX() >= (single_unit * (MAIN_X + 5.8))
+                                && e.getX() <= (single_unit * (MAIN_X + 7.1))
+                                && e.getY() >= (single_unit * 18.5)
+                                && e.getY() >= (single_unit * 19.5)
+                        ) {
+                            new_dim = new int[]{Integer.parseInt(h_.getText().trim()),Integer.parseInt(w_.getText().trim())};
+                            resize[0] = true;
+                        }
+
                         // for exit button
                         if(
-                                e.getX() >= (single_unit_int * 11)
-                                        && e.getY() >= (single_unit_int * 15.8)
-                                        && e.getX() <= (single_unit_int * 13.8)
-                                        && e.getY() <= (single_unit_int * 17.25)
+                                e.getX() >= (single_unit_int * MAIN_X + 1)
+                                        && e.getY() >= (single_unit_int * 17.8)
+                                        && e.getX() <= (single_unit_int * (MAIN_X + 3.8))
+                                        && e.getY() <= (single_unit_int * 19.25)
                         ) {
                             System.exit(0);
                         }
@@ -359,6 +568,9 @@ public class EnhancedTetris {
                     }
                 };
 
+                frame.add(h_);
+                frame.add(w_);
+
                 frame.addMouseMotionListener(a);
                 frame.addMouseListener(q);
                 frame.addMouseWheelListener(e -> {
@@ -370,6 +582,18 @@ public class EnhancedTetris {
                 });
             }
         };
+
+
+        Sliders.setVisible(true);
+        System.out.println(single_unit);
+
+        Sliders.add(speed);
+        Sliders.add(difficulty);
+        Sliders.add(scoreFactor);
+        Sliders.add(zoom);
+
+
+        frame.add(Sliders);
 
         panel.setVisible(true);
 
@@ -404,15 +628,17 @@ public class EnhancedTetris {
 
         int offset = 0;
         // big rectangle
-        g.drawRect(offset,offset,(int) single_unit*10, (int) single_unit*20);
+        g.drawRect(offset,offset,(int) single_unit*(MAIN_X), (int) single_unit*(MAIN_Y));
 
         // small rectangle
-        g.drawRect((int) single_unit * 11, offset, (int) single_unit * 6, (int) single_unit * 6);
+        g.drawRect((int)(single_unit * (MAIN_X + 1.1)), offset, (int) (single_unit * 6), (int) (single_unit * 6));
+
+//        System.out.println("score"+score);
 
         g.setFont(new Font("arial",100, (int) (single_unit * 0.7)));
-        g.drawString("Level: 1", (int) single_unit * 11, (int) single_unit * 7);
-        g.drawString("Lines: 0", (int) single_unit * 11, (int) single_unit * 8);
-        g.drawString("Score: 0", (int) single_unit * 11, (int) single_unit * 9);
+        g.drawString(String.format("Level: %d", level), (int) (single_unit * (MAIN_X + 1)), (int) (single_unit * 7));
+        g.drawString(String.format("Lines: %d", row_blasted), (int) (single_unit * (MAIN_X + 1)), (int) (single_unit * 8));
+        g.drawString(String.format("Score: %d", score), (int) (single_unit * (MAIN_X + 1)), (int) (single_unit * 9));
 
         if(isOver[0]) {
             return;
