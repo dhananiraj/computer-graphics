@@ -169,7 +169,11 @@ public class EnhancedTetris {
 
                     if(isPaused[0] || isOver[0]) {
                         if(isPenalty[0] && !lock_penalty) {
-                            currentType = ((int) (Math.random() * 100)) % Mapper.getAll().length;
+                            if(Math.abs(currentType - nextType) == 1) {
+                                currentType = (Math.max(currentType, nextType) + 1) % Mapper.getAll().length;
+                            } else {
+                                currentType = ((currentType + nextType) / 2) % Mapper.getAll().length;
+                            }
                             // Score = Score - Level x M
                             score -= level * M;
                             isPenalty[0] = false;
