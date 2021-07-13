@@ -36,7 +36,7 @@ public class Stair {
     public static void main(String[] args) throws Exception{
 
         if (args.length != 3) {
-            System.out.println("Need to provide n (> 0), alpha (in degrees)\n" + "and a filename as program arguments.\n");
+            System.out.println("Please enter n (> 0), alpha (in degrees) and a filename.\n");
             System.exit(1);
         }
 
@@ -46,7 +46,7 @@ public class Stair {
         double degree = Double.parseDouble(args[1]);
 
         if(n <= 0) {
-            System.out.println("Need to provide n (> 0), alpha (in degrees)\n" + "and a filename as program arguments.\n");
+            System.out.println("Please enter n (> 0), alpha (in degrees) and a filename.\n");
             System.exit(1);
         }
 
